@@ -67,4 +67,62 @@ router.get('/:id/comments', (req, res) => {
   });
 });
 
+// create post
+router.post('/', (req, res) => {
+  const newPost = req.body;
+
+  if (!newPost.title || !newPost.contents) {
+    res.status(400).json({ errorMessage: "Please provide title and contents for the post." });
+    return;
+  }
+
+  Posts.insert(newPost).then(info => {
+    Posts.findById(info["id"]).then(posts => {
+      if (posts.length === 1) {
+        res.status(201).json(posts[0]);
+      } else {
+        res.status(500).json({ error: "Unexpected error with findById when returning new post." });
+      }
+    }).catch(err => {
+      console.dir(err);
+      res.status(500).json({ error: "The post information could not be retrieved." });
+    });
+  }).catch(err => {
+    console.dir(err);
+    res.status(500).json({ error: "There was an error while saving the post to the database." });
+  });
+});
+
+// create comment
+router.post('/:id/comments', (req, res) => {
+  const newComment = { ...req.body, post_id: req.params.id };
+
+  if (!newComment.text) {
+    res.status(400).json({ errorMessage: "Please provide text for the comment." });
+    return;
+  }
+
+  Posts.insertComment(newComment).then(info => {
+    Posts.findCommentById(info["id"]).then(comment => {
+      res.status(201).json(comment);
+    }).catch(err => {
+      console.dir(err);
+      res.status(500).json({ error: "Unexpected error with findCommentById when returning new comment." })
+    });
+  }).catch(err => {
+    console.dir(err);
+    res.status(500).json({ error: "There was an error while saving the comment to the database." });
+  });
+});
+
+// delete post
+router.delete('/:id', (req,res) => {
+  Posts.remove(req.params.id).then(numDeleted => {
+    res.status(200).json(numDeleted);
+  }).catch(err => {
+    console.dir(err);
+    res.status(500).json({ error: "The post could not be removed." });
+  });
+});
+
 module.exports = router;
