@@ -115,14 +115,137 @@ router.post('/:id/comments', (req, res) => {
   });
 });
 
-// delete post
-router.delete('/:id', (req,res) => {
-  Posts.remove(req.params.id).then(numDeleted => {
-    res.status(200).json(numDeleted);
-  }).catch(err => {
+// delete post with .then()
+// router.delete('/:id', (req,res) => {
+//   Posts.findById(req.params.id).then(posts => {
+//     if (posts.length === 0) {
+//       res.status(404).json({ message: "The post with the specified ID does not exist." });
+//       return;
+//     } else if (posts.length === 1) {
+//       const deletedPost = posts[0];
+
+//       Posts.remove(req.params.id).then(numDeleted => {
+//         if (numDeleted !== 1) {
+//           res.status(500).json({ error: "Unexpected value returned from remove." });
+//           return;
+//         }
+    
+//         res.status(200).json(deletedPost);
+//       }).catch(err => {
+//         console.dir(err);
+//         res.status(500).json({ error: "The post could not be removed." });
+//       });
+//     } else {
+//       res.status(500).json({ error: "Unexpected error with findById when deleting post." });
+//       return;
+//     }
+//   }).catch(err => {
+//     console.dir(err);
+//     res.status(500).json({ error: "The post information could not be retrieved before deleting post." });
+//     return;
+//   });
+// });
+
+// with async/await, AWAIT the function that returns the Promise
+// async needs to be declared before await
+router.delete('/:id', async (req,res) => {
+  try {
+    const posts = await Posts.findById(req.params.id);
+    // wait for function to complete before moving on
+    if (posts.length === 0) {
+      res.status(404).json({ message: "The post with the specified ID does not exist." });
+      return;
+    } else if (posts.length === 1) {
+      const deletedPost = posts[0];
+      const numDeleted = await Posts.remove(req.params.id);
+      if (numDeleted === 1) {
+        res.status(200).json(deletedPost);
+      } else {
+        res.status(500).json({ error: "Unexpected value returned from remove." });
+      }
+    } else {
+      res.status(500).json({ error: "Unexpected error with findById when deleting post." });
+      return;
+    }
+  }
+  catch (err) {
     console.dir(err);
     res.status(500).json({ error: "The post could not be removed." });
-  });
+  }
 });
+  
+// update post
+
+  router.put('/:id', async (req, res) => {
+    const postInfo = req.body;
+
+    if (!postInfo.title || !postInfo.contents) {
+      res.status(400).json({ errorMessage: "Please provide title and contents for the post." });
+        return;
+    }
+
+    try {
+      const posts = await Posts.findById(req.params.id);
+
+      if (posts.length === 0) {
+        res.status(404).json({ message: "The post with the specified ID does not exist." });
+        return;
+      } else if (posts.length === 1) {
+        const numUpdated = await Posts.update(req.params.id, postInfo);
+
+        if (numUpdated === 1) {
+          const updatedPosts = await Posts.findById(req.params.id);
+          res.status(200).json(updatedPosts[0]);
+        } else {
+          res.status(500).json({ error: "Unexpected error with findById when returning updated post." });
+        }
+      } else {
+        res.status(500).json({ error: "Unexpected error with findById when updating post." });
+        return;
+      }
+    } 
+    catch (err) {
+      console.dir(err);
+      res.status(500).json({ error: "The post information could not be modified." });
+    }
+  });
+
+// router.put('/:id', (req, res) => {
+//   const postInfo = req.body;
+
+//   if (!postInfo.title || !postInfo.contents) {
+//     res.status(400).json({ errorMessage: "Please provide title and contents for the post." });
+//     return;
+//   }
+
+//   Posts.findById(req.params.id).then(posts => {
+//     if (posts.length === 0) {
+//       res.status(404).json({ message: "The post with the specified ID does not exist." });
+//       return;
+//     } else if (posts.length === 1) {
+//       let updatedPost = posts[0];
+//       updatedPost = { ...updatedPost, title: postInfo.title, contents: postInfo.contents };
+
+//       Posts.update(req.params.id, postInfo).then(numUpdated => {
+//         if (numUpdated !== 1) {
+//           res.status(500).json({ error: "Unexpected value returned from update." });
+//           return;
+//         }
+    
+//         res.status(200).json(updatedPost);
+//       }).catch(err => {
+//         console.dir(err);
+//         res.status(500).json({ error: "The post information could not be modified." });
+//       });
+//     } else {
+//       res.status(500).json({ error: "Unexpected error with findById when updating post." });
+//       return;
+//     }
+//   }).catch(err => {
+//     console.dir(err);
+//     res.status(500).json({ error: "The post information could not be retrieved before updating post." });
+//     return;
+//   });
+// });
 
 module.exports = router;
